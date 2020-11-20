@@ -8,6 +8,7 @@ from sanctuarybot import common
 from sanctuarybot.db import db
 from sanctuarybot.config import Config
 from sanctuarybot.utils.ready import Ready
+from sanctuarybot.utils.emoji import EmojiGetter
 
 class Bot(commands.Bot):
 
@@ -18,6 +19,7 @@ class Bot(commands.Bot):
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
         self.db = db.Database(self, Config.DSN)
+        self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
 
         super().__init__(command_prefix=self.command_prefix, case_insensitive=True, status=discord.Status.online, intents=intents)
@@ -29,9 +31,9 @@ class Bot(commands.Bot):
             try:
                 self.load_extension(f"sanctuarybot.bot.cogs.{cog}")
             except Exception as ex:
-                print(f"Error loading {cog}: {str(ex.args)}")
+                print(f"Error loading {cog} cog: {str(ex.args)}")
             else:
-                print(f"Loaded {cog}.")
+                print(f"Loaded {cog} cog.")
     
     def run(self):
         self.setup()
@@ -44,10 +46,9 @@ class Bot(commands.Bot):
         self.scheduler.shutdown()
         print(" Shut down scheduler.")
         
-        #TODO Are we using a hub, or where must this message go?
-        # hub = self.get_cog("Hub")
-        # if (sc := getattr(hub, "stdout_channel", None)) is not None:
-        #     await sc.send(f"{self.info} {Config.BOT_NAME} is now shutting down. (Version {self.version})")
+        hub = self.get_cog("Hub")
+        if (sc := getattr(hub, "stdout_channel", None)) is not None:
+            await sc.send(f"{self.info} {Config.BOT_NAME} is now shutting down. (Version {self.version})")
 
         print(" Closing connection to Discord...")
         await self.logout()
@@ -55,8 +56,6 @@ class Bot(commands.Bot):
     async def on_connect(self):
         if not self.ready.booted:
             print(f" Connected to Discord (latency: {self.latency*1000:,.0f} ms).")
-            self.db.set_dsn(Config.DSN)
-            print(" Set database dsn.")
 
     async def on_resumed(self):
         print("Bot resumed.")

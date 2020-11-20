@@ -1,6 +1,6 @@
 import datetime as dt
 from time import strftime
-from sanctuarybot.utils import time
+from sanctuarybot.utils import string
 
 def sys_time():
     return strftime("%H:%M:%S")

@@ -7,9 +7,6 @@ from apscheduler.triggers.cron import CronTrigger
 
 class Database:
 
-    # dsn = None
-    # pool = None
-
     def __init__(self, bot, dsn):
         self.bot = bot
         self.build_path = f"{self.bot._static}/build.sql"
@@ -17,44 +14,42 @@ class Database:
         loop.run_until_complete(self.init_instance(dsn))
 
     async def init_instance(self, dsn):
-        self.pool = await asyncpg.create_pool(dsn)        
+        self.pool = await asyncpg.create_pool(dsn)  
 
-    #TODO Follow up on whether a singleton is required
-    # @classmethod()
-    # def set_dsn(cls, dsn):
-    #     #Database.dsn = dsn
-    #     cls.dsn = dsn
+    async def sync(self):
+        # Insert.
+        await self.executemany("INSERT INTO guild_config (guild_id) VALUES ($1) ON CONFLICT DO NOTHING", [(g.id,) for g in self.bot.guilds])              
 
-    # @classmethod()
-    # async def _pool(cls):
-    #     if not isinstance(cls.dsn, str):
-    #         raise TypeError("dsn must be a string")        
-    #     if cls.pool is None:
-    #         cls.pool = await asyncpg.create_pool(Database.dsn)
-    #     return cls.pool
+        # Remove.
+        stored = await self.column("SELECT guild_id FROM guild_config")
+        member_of = [g.id for g in self.bot.guilds]
+        removals = [(g_id,) for g_id in set(stored) - set(member_of)]
+        await self.executemany("DELETE FROM guild_config WHERE guild_id = $1", removals)        
 
     async def field(self, sql, *values):
-        with self.pool.acquire() as conn:
+        async with self.pool.acquire() as conn:
             return await conn.fetchval(sql, *values)
         
     async def record(self, sql, *values):
-        with self.pool.acquire() as conn:
+        async with self.pool.acquire() as conn:
             return await conn.fetchrow(sql, *values)
 
     async def records(self, sql, *values):
-        with self.pool.acquire() as conn:
+        async with self.pool.acquire() as conn:
             return await conn.fetch(sql, *values)
 
     async def column(self, sql, *values):
-        with self.pool.acquire() as conn:
+        async with self.pool.acquire() as conn:
             rows = await conn.fetch(sql, *values)
             return [row[0] for row in rows]
 
     async def execute(self, sql, *values):
-        self._calls += 1
+        async with self.pool.acquire() as conn:
+            await conn.execute(sql, *values)
 
     async def executemany(self, sql, valueset):
-        self._calls += 1
+        async with self.pool.acquire() as conn:
+            await conn.executemany(sql, valueset)
 
     async def executescript(self, path, *values):
-        self._calls += 1
+        pass

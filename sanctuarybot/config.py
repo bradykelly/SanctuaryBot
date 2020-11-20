@@ -34,3 +34,7 @@ class Config:
     DSN: Final = dsn
     DEFAULT_PREFIX: Final = getenv("DEFAULT_PREFIX", "cb?")
     BOT_NAME: Final = getenv("BOT_NAME", "SanctuaryBot")
+    HUB_GUILD_ID: Final = int(getenv("HUB_GUILD_ID", ""))
+    HUB_COMMANDS_CHANNEL_ID: Final = int(getenv("HUB_COMMANDS_CHANNEL_ID", ""))
+    HUB_RELAY_CHANNEL_ID: Final = int(getenv("HUB_RELAY_CHANNEL_ID", ""))
+    HUB_STDOUT_CHANNEL_ID: Final = int(getenv("HUB_STDOUT_CHANNEL_ID", ""))
