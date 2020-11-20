@@ -1,0 +1,2 @@
+from sanctuarybot import config
+

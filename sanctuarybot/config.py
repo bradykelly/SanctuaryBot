@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BOT_VERSION = "0.3.0"
+CSV_SEPARATOR = ";"
+DEFAULT_NOTEBOOK = "Main"
+MENU_TIMEOUT2 = 1200.0
+MENU_TIMEOUT5 = 300.0
+
 MAX_PREFIX_LEN = 5
 MIN_TIMEOUT = 1
 MAX_TIMEOUT = 60
@@ -13,13 +19,18 @@ MAX_WGBOTTEXT_LEN = 500
 
 class Config:
     try:
-        # Load production token.
         with open(getenv("TOKEN", "")) as f:
             token = f.read()
     except FileNotFoundError:
-        # Load development token.
         token = getenv("TOKEN", "")
 
+    try:
+        with open(getenv("DSN", "")) as f:
+            dsn = f.read()
+    except  FileNotFoundError:
+        dsn = getenv("DSN", "")
+
     TOKEN: Final = token
-    DEFAULT_PREFIX: Final = getenv("DEFAULT_PREFIX", "->")
+    DSN: Final = dsn
+    DEFAULT_PREFIX: Final = getenv("DEFAULT_PREFIX", "cb?")
     BOT_NAME: Final = getenv("BOT_NAME", "SanctuaryBot")

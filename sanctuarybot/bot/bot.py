@@ -17,7 +17,7 @@ class Bot(commands.Bot):
         self._dynamic = "./sanctuarybot/data/dynamic"
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
-        self.db = db.Database(self)
+        self.db = db.Database(self, Config.DSN)
         self.ready = Ready(self)
 
         super().__init__(command_prefix=self.command_prefix, case_insensitive=True, status=discord.Status.online, intents=intents)
@@ -55,6 +55,8 @@ class Bot(commands.Bot):
     async def on_connect(self):
         if not self.ready.booted:
             print(f" Connected to Discord (latency: {self.latency*1000:,.0f} ms).")
+            self.db.set_dsn(Config.DSN)
+            print(" Set database dsn.")
 
     async def on_resumed(self):
         print("Bot resumed.")
