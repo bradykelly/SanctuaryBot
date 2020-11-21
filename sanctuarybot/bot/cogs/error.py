@@ -8,6 +8,8 @@ from sanctuarybot.utils import chron, string
 
 
 class Error(commands.Cog):
+    """Error handling and logging"""
+
     def __init__(self, bot):
         self.bot = bot
 

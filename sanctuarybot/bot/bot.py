@@ -1,6 +1,5 @@
 import time
 import discord
-import sanctuarybot.common
 from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from discord.ext import commands
@@ -87,7 +86,7 @@ class Bot(commands.Bot):
 
     async def prefix(self, guild):
         if guild is not None:
-            prefix = await self.db.field("SELECT command_prefix FROM guild_config WHERE guild_id = ?", guild.id)
+            prefix = await self.db.field("SELECT command_prefix FROM guild_config WHERE guild_id = $1", guild.id)
             if not prefix:
                 return Config.DEFAULT_PREFIX
             return prefix
@@ -156,25 +155,5 @@ class Bot(commands.Bot):
     def generate_id():
         return hex(int(time.time() * 1e7))[2:]
 
-    async def grab_user(self, arg):
-        # A convenience method that initially calls get, and falls back to fetch.
-        try:
-            return self.get_user(arg) or await self.fetch_user(arg)
-        except (ValueError, discord.NotFound):
-            return None
-
-    async def grab_channel(self, arg):
-        # A convenience method that initially calls get, and falls back to fetch.
-        try:
-            return self.get_channel(arg) or await self.fetch_channel(arg)
-        except (ValueError, discord.NotFound):
-            return None
-
-    async def grab_guild(self, arg):
-        # A convenience method that initially calls get, and falls back to fetch.
-        try:
-            return self.get_guild(arg) or await self.fetch_guild(arg)
-        except (ValueError, discord.NotFound):
-            return None                        
 
         

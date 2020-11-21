@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_VERSION = "0.3.0"
+BOT_VERSION = "0.1.0"
 CSV_SEPARATOR = ";"
 DEFAULT_NOTEBOOK = "Main"
 MENU_TIMEOUT2 = 1200.0
