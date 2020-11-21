@@ -1,5 +1,7 @@
 import datetime as dt
+from sanctuarybot.config import Config
 import discord
+import asyncpg
 from datetime import datetime
 from traceback import format_exc
 from sanctuarybot import common
@@ -39,6 +41,7 @@ class Error(BaseCog):
         prefix = await self.bot.prefix(ctx.guild)
 
         if isinstance(exc, commands.CommandNotFound):
+            #TODO Do something
             pass
 
         # Custom check failure handling.
@@ -70,7 +73,7 @@ class Error(BaseCog):
             try:
                 mp = string.list_of([str(perm.replace("_", " ")).title() for perm in exc.missing_perms], sep="or")
                 await ctx.send(
-                    f"{self.bot.cross} {common.BOT_NAME} does not have the {mp} permission(s), which are required to use this command."
+                    f"{self.bot.cross} {Config.BOT_NAME} does not have the {mp} permission(s), which are required to use this command."
                 )
             except discord.Forbidden:
                 # If this bot does not have the Send Messages permission (might redirect this to log channel once it's set up).
@@ -96,11 +99,11 @@ class Error(BaseCog):
 
         elif isinstance(exc, commands.InvalidEndOfQuotedStringError):
             await ctx.send(
-                f"{self.bot.cross} {common.BOT_NAME} expected a space after the closing quote, but found a(n) `{exc.char}` instead."
+                f"{self.bot.cross} {Config.BOT_NAME} expected a space after the closing quote, but found a(n) `{exc.char}` instead."
             )
 
         elif isinstance(exc, commands.ExpectedClosingQuoteError):
-            await ctx.send(f"{self.bot.cross} {common.BOT_NAME} expected a closing quote character, but did not find one.")
+            await ctx.send(f"{self.bot.cross} {Config.BOT_NAME} expected a closing quote character, but did not find one.")
 
         # Base errors.
         elif isinstance(exc, commands.UserInputError):
@@ -113,6 +116,11 @@ class Error(BaseCog):
                 f"{self.bot.cross} There was an unhandled command check error (probably missing privileges). Use `{prefix}help {ctx.command}` for more information."
             )
 
+        elif isinstance(exc, asyncpg.exceptions.PostgresError):
+            await ctx.send(
+                f"{self.bot.cross} There was an unhandled database error while executing command `{prefix}{ctx.command}`. The error is: {exc.message}"
+            )
+
         # Non-command errors.
         elif (original := getattr(exc, "original", None)) is not None:
             if isinstance(original, discord.HTTPException):
@@ -121,7 +129,7 @@ class Error(BaseCog):
                 )
             else:
                 raise original
-
+        
         else:
             raise exc
 

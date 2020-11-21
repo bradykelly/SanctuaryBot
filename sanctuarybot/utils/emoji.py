@@ -2,7 +2,7 @@
 
 from discord import utils
 
-# If {common.BOT_NAME} can't use the correct emojis, fall back to these.
+# If SanctuaryBot can't use the correct emojis, fall back to these.
 ALTERNATIVES = {
     "confirm": "✅",
     "cancel": "❎",

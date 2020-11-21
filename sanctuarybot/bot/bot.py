@@ -100,10 +100,10 @@ class Bot(commands.Bot):
 
         if ctx.command is not None:
             if isinstance(msg.channel, discord.DMChannel):
-                await ctx.send(f"{self.cross} {common.BOT_NAME} does not support command invokations in DMs.")
+                await ctx.send(f"{self.cross} {Config.BOT_NAME} does not support command invokations in DMs.")
             elif not self.ready.booted:
                 await ctx.send(
-                    f"{self.cross} {common.BOT_NAME} is still booting and is not ready to receive commands. Please try again later."
+                    f"{self.cross} {Config.BOT_NAME} is still booting and is not ready to receive commands. Please try again later."
                 )
             else:
                 await self.invoke(ctx)

@@ -3,7 +3,8 @@ from discord.ext import commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from sanctuarybot.bot.basecog import BaseCog
 
-BIRTHDAY_COMMANDS = ["set", "remove", "setuser"]
+
+BIRTHDAY_COMMANDS = ["set", "unset", "setuser"]
 
 class Birthdays(BaseCog):
     """Commands to set up a birthday reminder/message"""
@@ -25,8 +26,14 @@ class Birthdays(BaseCog):
         usage="[set <YYYY-MM-DD>][remove][setuser <user-id> <YYYY-MM-DD>]"
     )
     async def birthday_command(self, ctx):
-        if ctx.invoked_subcommand is None or (ctx.invoked_subcommand is not None 
-            and ctx.invoked_subcommand.name not in BIRTHDAY_COMMANDS):
+        if ctx.invoked_subcommand is None:
+            dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE member_id = $1", ctx.author.id)
+            prefix = await self.bot.prefix(ctx.guild)
+            if dob is None:                
+                await ctx.send(f"Your birthday is not set in our database. Use `{prefix}birthday set YYYY-MM-DD to set it.")
+            else:
+                await ctx.send(f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday set YYYY-MM-DD` to change it.")
+        elif ctx.invoked_subcommand.name not in BIRTHDAY_COMMANDS:
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
 
     @birthday_command.error
@@ -52,7 +59,8 @@ class Birthdays(BaseCog):
                     ON CONFLICT (member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth", 
                     ctx.message.author.id, dob)
             except Exception as ex:
-                msg = ex.message
+                error_cog = self.bot.get_cog("Error")
+                await error_cog.command_error(ctx, ex)
             else:
                 await ctx.send(f"Your birthday has been set to `{dob.strftime('%Y-%m-%d')}`")
 
