@@ -1,8 +1,9 @@
 from discord.ext import commands
 from sanctuarybot.config import Config
+from sanctuarybot.bot.basecog import BaseCog
 
 
-class Control:
+class Control(BaseCog):
     """Bot control commands"""
 
     def __init__(self, bot):

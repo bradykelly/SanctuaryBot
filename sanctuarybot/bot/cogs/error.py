@@ -5,9 +5,11 @@ from traceback import format_exc
 from sanctuarybot import common
 from discord.ext import commands
 from sanctuarybot.utils import chron, string
+from sanctuarybot.bot.basecog import BaseCog
 
+#TODO Use as_codeblock for output
 
-class Error(commands.Cog):
+class Error(BaseCog):
     """Error handling and logging"""
 
     def __init__(self, bot):

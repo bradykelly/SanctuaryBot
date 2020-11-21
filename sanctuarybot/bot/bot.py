@@ -89,7 +89,7 @@ class Bot(commands.Bot):
             prefix = await self.db.field("SELECT command_prefix FROM guild_config WHERE guild_id = $1", guild.id)
             if not prefix:
                 return Config.DEFAULT_PREFIX
-            return prefix
+            return prefix.strip()
 
     async def command_prefix(self, bot, msg):
         prefix = await self.prefix(msg.guild)
