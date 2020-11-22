@@ -1,21 +1,23 @@
-from datetime import datetime
+import asyncpg
+import datetime
 from discord.ext import commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from sanctuarybot.bot.basecog import BaseCog
 
 
-BIRTHDAY_COMMANDS = ["set", "unset", "setuser"]
+BIRTHDAY_COMMANDS = ["set", "clear", "user", "show_messages"]
 
 class Birthdays(BaseCog):
     """Commands to set up a birthday reminder/message"""
 
     def __init__(self, bot):
         self.bot = bot
+        #self.bot.scheduler.add_job(self.show_birthday_messages, seconds = 60)
 
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.bot.ready.booted:
-            self.bot.ready.up(self)   
+            self.bot.ready.up(self)  
 
     @commands.group(
         name="birthday",
@@ -23,7 +25,7 @@ class Birthdays(BaseCog):
         title="Commands to set up a birthday reminder/message", 
         help="Add, update or remove a user's birthday",
         brief="Birthday commands",
-        usage="[set <YYYY-MM-DD>][remove][setuser <user-id> <YYYY-MM-DD>]"
+        usage="[set <YYYY-MM-DD>][clear][user <user-id> <YYYY-MM-DD>]"
     )
     async def birthday_command(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -32,7 +34,7 @@ class Birthdays(BaseCog):
             if dob is None:                
                 await ctx.send(f"Your birthday is not set in our database. Use `{prefix}birthday set YYYY-MM-DD to set it.")
             else:
-                await ctx.send(f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday set YYYY-MM-DD` to change it.")
+                await ctx.send(f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday clear` to clear it.")
         elif ctx.invoked_subcommand.name not in BIRTHDAY_COMMANDS:
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
 
@@ -40,6 +42,7 @@ class Birthdays(BaseCog):
     async def birthday_handler(self, ctx, error):
         if isinstance(error, CommandNotFound):
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+
 
     @birthday_command.command(
         name="set",
@@ -50,7 +53,7 @@ class Birthdays(BaseCog):
     )
     async def set_command(self, ctx, birthdate):
         try:
-            dob = datetime.strptime(birthdate, "%Y-%m-%d").date()
+            dob = datetime.datetime.strptime(birthdate, "%Y-%m-%d").date()
         except Exception as ex:
             await ctx.send(f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
         else:
@@ -58,7 +61,7 @@ class Birthdays(BaseCog):
                 await self.bot.db.execute("INSERT INTO member (member_id, date_of_birth) VALUES($1, $2) \
                     ON CONFLICT (member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth", 
                     ctx.message.author.id, dob)
-            except Exception as ex:
+            except asyncpg.exceptions.PostgresError as ex:
                 error_cog = self.bot.get_cog("Error")
                 await error_cog.command_error(ctx, ex)
             else:
@@ -68,6 +71,46 @@ class Birthdays(BaseCog):
     async def set_handler(self, ctx, error):
         if isinstance(error, MissingRequiredArgument) and error.param.name == "birthday":
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+        else:
+            msg = error.message if isinstance(error, Exception) else f"Type of error:{str(error)}"                
+            await ctx.send(f"An unhandled error occuured while trying to clear your birthday: {msg}")
+    
+
+    @birthday_command.command(
+        name="clear",
+        aliases=["unset", "remove"],
+        help="Clear your birthday from our database",
+        brief="Clear stored birthday"    
+    )
+    async def clear_command(self, ctx):
+        try:
+            await self.bot.db.execute("UPDATE member SET date_of_birth = null WHERE member_id = $1", ctx.author.id)
+        except asyncpg.exceptions.PostgresError as ex:
+            error_cog = self.bot.get_cog("Error")
+            await error_cog.command_error(ctx, ex)
+        else:
+            await ctx.send(f"Your birthday has been cleared.")            
+
+    @clear_command.error
+    async def clear_handler(self, ctx, error):
+        msg = error.message if isinstance(error, Exception) else f"Type of error: {str(error)}"                
+        await ctx.send(f"An unhandled error occuured while trying to clear your birthday: `{msg}`")
+
+
+    @birthday_command.command(
+        name="show_messages"  
+    )
+    async def show_messages_command(self, ctx):
+        await self._show_messages()
+
+    async def _show_messages(self):
+        bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth FROM member \
+            WHERE birthday_greeting_time IS NULL AND date_of_birth = $1", datetime.date.today())
+        for rec in bdayRecs:
+            member = self.bot.get_user(rec["member_id"])
+            await member.send(f"Happy birthday, {member.name}!")
+            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1", datetime.datetime.now())
+        await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
 
 
 def setup(bot):

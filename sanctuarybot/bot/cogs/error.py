@@ -41,8 +41,9 @@ class Error(BaseCog):
         prefix = await self.bot.prefix(ctx.guild)
 
         if isinstance(exc, commands.CommandNotFound):
-            #TODO Do something
-            pass
+            await ctx.send(
+                f"{self.bot.cross} Command `{exc.param.name}`is not known to {Config.BOT_NAME}"
+            )
 
         # Custom check failure handling.
         elif hasattr(exc, "msg"):
