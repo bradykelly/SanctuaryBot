@@ -7,11 +7,11 @@ class BaseCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    def format_usage(self, ctx):
+    def format_usage(self, ctx, prefix=None):
         '''
         Contructs a formatted usage string for a command.
         '''
-        usg = f"{ctx.prefix}{ctx.command.name} {ctx.command.usage}"
+        usg = f"{prefix if prefix is not None else ''}{ctx.command.name} {ctx.command.usage}"
         return usg
 
     async def show_message_codeblock(self, ctx, message, title=None):

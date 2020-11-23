@@ -6,7 +6,7 @@ from sanctuarybot.bot.basecog import BaseCog
 from apscheduler.triggers.cron import CronTrigger
 
 
-BIRTHDAY_COMMANDS = ["set", "clear", "user", "show_messages"]
+BIRTHDAY_COMMANDS = ["set", "clear", "public", "user", "show_messages"]
 
 class Birthdays(BaseCog):
     """Commands to set up a birthday reminder/message"""
@@ -28,23 +28,24 @@ class Birthdays(BaseCog):
         title="Commands to set up a birthday reminder/message", 
         help="Add, update or remove a user's birthday",
         brief="Birthday commands",
-        usage="[set <YYYY-MM-DD>][clear][user <user-id> <YYYY-MM-DD>]"
+        usage="[set <YYYY-MM-DD>] [clear] [public [yes|no]] [user <user-id> <YYYY-MM-DD>]"
     )
     async def birthday_command(self, ctx):
+        prefix = await self.bot.prefix(ctx.guild)
         if ctx.invoked_subcommand is None:
-            dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE member_id = $1", ctx.author.id)
-            prefix = await self.bot.prefix(ctx.guild)
+            dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE member_id = $1", ctx.author.id)            
             if dob is None:                
                 await ctx.send(f"Your birthday is not set in our database. Use `{prefix}birthday set YYYY-MM-DD to set it.")
             else:
                 await ctx.send(f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday clear` to clear it.")
         elif ctx.invoked_subcommand.name not in BIRTHDAY_COMMANDS:
-            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+            await self.show_message_codeblock(ctx, self.format_usage(ctx, prefix), "Usage")
 
     @birthday_command.error
     async def birthday_handler(self, ctx, error):
         if isinstance(error, CommandNotFound):
-            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+            prefix = await self.bot.prefix(ctx.guild)
+            await self.show_message_codeblock(ctx, self.format_usage(ctx, prefix), "Usage")
 
 
     @birthday_command.command(
@@ -72,11 +73,12 @@ class Birthdays(BaseCog):
 
     @set_command.error
     async def set_handler(self, ctx, error):
-        if isinstance(error, MissingRequiredArgument) and error.param.name == "birthday":
+        prefix = await self.bot.prefix(ctx.guild)
+        if isinstance(error, MissingRequiredArgument) and error.param.name == "birthdate":
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
         else:
             msg = error.message if isinstance(error, Exception) else f"Type of error:{str(error)}"                
-            await ctx.send(f"An unhandled error occuured while trying to clear your birthday: {msg}")
+            await ctx.send(f"An unhandled error occurred while trying to set your birthday: {msg}")
     
 
     @birthday_command.command(
@@ -99,11 +101,42 @@ class Birthdays(BaseCog):
         msg = error.message if isinstance(error, Exception) else f"Type of error: {str(error)}"                
         await ctx.send(f"An unhandled error occuured while trying to clear your birthday: `{msg}`")
 
+
+    @birthday_command.command(
+        name="public", 
+        help="Set whether you get a public or private birthday greeting",
+        brief="Set public or private birthday greeting"   ,
+        usage="[yes|no]"
+    )
+    async def public_command(self, ctx, yesNo):
+        prefix = await self.bot.prefix(ctx.guild)
+        if yesNo.lower() != "yes" and yesNo.lower() != "no":
+            await self.show_message_codeblock(ctx, f"{prefix}birthday public [yes|no]", "Usage")
+            return
+        try:
+            trueFalse = "TRUE" if yesNo.lower() == "yes" else "FALSE"             
+            await self.bot.db.execute(f"UPDATE member SET birthday_greeting_public = {trueFalse} WHERE member_id = $1", ctx.author.id)
+        except asyncpg.exceptions.PostgresError as ex:
+            error_cog = self.bot.get_cog("Error")
+            await error_cog.command_error(ctx, ex)
+        else:
+            await ctx.send(f"Your birthday greeting has been set to {'public' if yesNo.lower() == 'yes' else 'private'}")        
+
+    @public_command.error
+    async def public_handler(self, ctx, error):
+        prefix = await self.bot.prefix(ctx.guild)
+        if isinstance(error, MissingRequiredArgument) and error.param.name == "yesNo":
+            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+        else:
+            msg = error.message if isinstance(error, Exception) else f"Type of error: {str(error)}"                
+            await ctx.send(f"An unhandled error occuured while trying to clear your birthday: `{msg}`")
+
+
     #TODO Add a role check for this.
     @birthday_command.command(
         name="show_messages"  
     )
-    async def show_messages_command(self, ctx):
+    async def show_messages_command(self, ctx):        
         if Birthdays.messages_busy:
             ctx.send("The Show Messages job is already busy running.")
             return
@@ -112,6 +145,20 @@ class Birthdays(BaseCog):
         except asyncpg.exceptions.PostgresError as ex:
             error_cog = self.bot.get_cog("Error")
             await error_cog.command_error(ctx, ex)
+
+    @show_messages_command.error
+    async def show_messages_command_handler(self, ctx, error):
+        msg = error.message if isinstance(error, Exception) else f"Type of error: {str(error)}"                
+        await ctx.send(f"An unhandled error occuured while trying to show birthday messages: `{msg}`")        
+
+    async def _show_messages(self):
+        bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth FROM member \
+            WHERE birthday_greeting_time IS NULL AND date_of_birth = $1", datetime.date.today())
+        for rec in bdayRecs:
+            member = self.bot.get_user(rec["member_id"])
+            await member.send(f"Happy birthday, {member.name}!")
+            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE member_id = $2", datetime.datetime.now(), rec["member_id"])
+        await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
 
     async def messages_job(self):
         Birthdays.messages_busy = True
@@ -123,16 +170,6 @@ class Birthdays(BaseCog):
             await error_cog.log_error(ex)
         finally:
             Birthdays.messages_busy = False
-
-    async def _show_messages(self):
-        bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth FROM member \
-            WHERE birthday_greeting_time IS NULL AND date_of_birth = $1", datetime.date.today())
-        for rec in bdayRecs:
-            member = self.bot.get_user(rec["member_id"])
-            await member.send(f"Happy birthday, {member.name}!")
-            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE member_id = $2", datetime.datetime.now(), rec["member_id"])
-        await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
-
 
 
 def setup(bot):
