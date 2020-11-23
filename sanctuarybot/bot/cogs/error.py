@@ -23,9 +23,10 @@ class Error(BaseCog):
             self.bot.ready.up(self)
 
     async def error(self, err, *args, **kwargs):
-        ref = await self.log_error(args[0] if len(args) > 0 else None)
+        ref = await self.log_error(err)
         hub = self.bot.get_cog("Hub")
 
+        #TODO Add guild name to hub messages
         if (sc := getattr(hub, "stdout_channel", None)) is not None:
             await sc.send(f"{self.bot.cross} Something went wrong (ref: {ref}).")
 
@@ -34,8 +35,8 @@ class Error(BaseCog):
             await args[0].send(
                 f"{self.bot.cross} Something went wrong (ref: {ref}). Quote this reference in the support server, which you can get a link for by using `{prefix}support`."
             )
-
-        raise  # Re-raises the last known exception.
+        if isinstance(err, Exception):
+            raise err  
 
     async def command_error(self, ctx, exc):
         prefix = await self.bot.prefix(ctx.guild)
