@@ -6,6 +6,7 @@ from discord.ext import commands
 from sanctuarybot import utils
 from sanctuarybot.db import db
 from sanctuarybot.config import Config
+from sanctuarybot.utils.roles import Roles
 from sanctuarybot.utils.ready import Ready
 from sanctuarybot.utils.emoji import EmojiGetter
 
@@ -18,6 +19,7 @@ class Bot(commands.Bot):
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
         self.db = db.Database(self, Config.DSN)
+        self.roles = Roles(self)
         self.embed = utils.EmbedConstructor(self)
         self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
