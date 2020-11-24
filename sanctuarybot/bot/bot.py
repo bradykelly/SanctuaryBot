@@ -3,7 +3,7 @@ import discord
 from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from discord.ext import commands
-from sanctuarybot import common
+from sanctuarybot import utils
 from sanctuarybot.db import db
 from sanctuarybot.config import Config
 from sanctuarybot.utils.ready import Ready
@@ -18,6 +18,7 @@ class Bot(commands.Bot):
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
         self.db = db.Database(self, Config.DSN)
+        self.embed = utils.EmbedConstructor(self)
         self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
 

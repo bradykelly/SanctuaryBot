@@ -23,4 +23,4 @@ class BaseCog(commands.Cog):
             msg += title + "\n\n"
         msg += message
         msg += "\n```"
-        await ctx.send(msg)        
+        await ctx.send(msg)    

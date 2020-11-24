@@ -1,5 +1,6 @@
 import asyncpg
 import datetime
+import discord
 from discord.ext import commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from sanctuarybot.bot.basecog import BaseCog
@@ -61,14 +62,7 @@ class Birthdays(BaseCog):
         except Exception as ex:
             await ctx.send(f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
         else:
-            try:
-                await self.bot.db.execute("INSERT INTO member (member_id, date_of_birth) VALUES($1, $2) \
-                    ON CONFLICT (member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeting_time = NULL", 
-                    ctx.message.author.id, dob)
-            except asyncpg.exceptions.PostgresError as ex:
-                error_cog = self.bot.get_cog("Error")
-                await error_cog.command_error(ctx, ex)
-            else:
+            if await self.set_birthdate(ctx.author.id, dob):
                 await ctx.send(f"Your birthday has been set to `{dob.strftime('%Y-%m-%d')}`")
 
     @set_command.error
@@ -79,6 +73,31 @@ class Birthdays(BaseCog):
         else:
             msg = error.message if isinstance(error, Exception) else f"Type of error:{str(error)}"                
             await ctx.send(f"An unhandled error occurred while trying to set your birthday: {msg}")
+
+    @birthday_command.command(
+        name="user",
+        aliases=["setuser"],
+        help="Set a user's birthday",
+        brief="Set a user's birthday",
+        usage="<user> <birthdate> (format `YYYY-MM-DD`)"    
+    )
+    async def user_command(self, ctx, user: discord.User, birthdate):
+        try:
+            dob = datetime.datetime.strptime(birthdate, "%Y-%m-%d").date()
+        except Exception as ex:
+            await ctx.send(f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
+        else:
+            if await self.set_birthdate(user.id, dob):
+                await ctx.send(f"The user's birthday has been set to `{dob.strftime('%Y-%m-%d')}`")
+
+    @user_command.error
+    async def user_handler(self, ctx, error):
+        prefix = await self.bot.prefix(ctx.guild)
+        if isinstance(error, MissingRequiredArgument) and error.param.name == "birthdate":
+            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+        else:
+            msg = error.message if isinstance(error, Exception) else f"Type of error:{str(error)}"                
+            await ctx.send(f"An unhandled error occurred while trying to set the user's birthday: {msg}")
     
 
     @birthday_command.command(
@@ -156,7 +175,7 @@ class Birthdays(BaseCog):
             WHERE birthday_greeting_time IS NULL AND date_of_birth = $1", datetime.date.today())
         for rec in bdayRecs:
             member = self.bot.get_user(rec["member_id"])
-            await member.send(f"Happy birthday, {member.name}!")
+            await member.send(embed=self.build_birthday_message())
             await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE member_id = $2", datetime.datetime.now(), rec["member_id"])
         await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
 
@@ -170,6 +189,26 @@ class Birthdays(BaseCog):
             await error_cog.log_error(ex)
         finally:
             Birthdays.messages_busy = False
+
+    async def set_birthdate(self, user_id, dob):    
+        try:
+            await self.bot.db.execute("INSERT INTO member (member_id, date_of_birth) VALUES($1, $2) \
+                ON CONFLICT (member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeting_time = NULL", 
+                user_id, dob)
+            return True
+        except asyncpg.exceptions.PostgresError as ex:
+            error_cog = self.bot.get_cog("Error")
+            await error_cog.command_error(ctx, ex)
+            return False    
+
+    def build_birthday_message(self):
+        self.bot.embed.build(
+            title="Happy Birthday!", 
+            description="The Sanctuary community wishes you a very happy birthday",
+            url="http://sancturaybot.co.za/help?command=birthday",
+            author_url="http://sancturaybot.co.za",
+            image="file://D:/Personal/Python+Projects/SanctuaryBot/images/bday1.jpg"
+        )            
 
 
 def setup(bot):
