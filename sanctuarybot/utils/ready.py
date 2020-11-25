@@ -1,3 +1,6 @@
+import inspect
+
+
 class Ready:
     def __init__(self, bot):
         self.bot = bot
@@ -8,8 +11,11 @@ class Ready:
             setattr(self, cog, False)
 
     def up(self, cog):
-        setattr(self, qn := cog.qualified_name.lower(), True)
-        print(f"'{qn}' ready.")
+        filename = inspect.getmodule(cog).__file__.split("\\")[-1].replace(".py", "")
+        #TODO Remove old code
+        #setattr(self, qn := cog.qualified_name.lower(), True)
+        setattr(self, filename, True)
+        print(f"{filename} cog ready.")
 
     @property
     def ok(self):
