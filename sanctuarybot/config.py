@@ -2,8 +2,6 @@ from os import getenv
 from typing import Final
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BOT_VERSION = "0.1.0"
 CSV_SEPARATOR = ";"
 DEFAULT_NOTEBOOK = "Main"
@@ -16,6 +14,9 @@ MAX_TIMEOUT = 60
 MAX_GATETEXT_LEN = 250
 MAX_WGTEXT_LEN = 1000
 MAX_WGBOTTEXT_LEN = 500
+
+load_dotenv()
+
 
 class Config:
     try:
