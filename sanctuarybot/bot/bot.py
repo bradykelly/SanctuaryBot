@@ -1,4 +1,3 @@
-from sanctuarybot.utils.probot import ProBotConfig
 import time
 import discord
 from pathlib import Path
@@ -10,6 +9,7 @@ from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
 from sanctuarybot.utils.ready import Ready
 from sanctuarybot.utils.emoji import EmojiGetter
+from sanctuarybot.utils.probot import ProBotUtils
 
 class Bot(commands.Bot):
 
@@ -20,7 +20,7 @@ class Bot(commands.Bot):
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
         self.db = db.Database(self, Config.DSN)
-        self.probot = ProBotConfig(self)
+        self.probot = ProBotUtils(self)
         self.roles = Roles(self)
         self.embed = utils.EmbedConstructor(self)
         self.emoji = EmojiGetter(self)

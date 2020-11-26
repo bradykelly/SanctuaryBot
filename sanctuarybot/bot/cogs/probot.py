@@ -1,4 +1,3 @@
-from sanctuarybot import utils
 import asyncpg
 import datetime
 import discord
@@ -9,7 +8,7 @@ from sanctuarybot.bot.basecog import BaseCog
 
 PROBOT_COMMANDS = ["read", "clear"]
 
-class PbReader(BaseCog):
+class ProbotReader(BaseCog):
     """Commands to parse xp output from the ProBot `top` commands"""
 
     def __init__(self, bot):
@@ -40,7 +39,7 @@ class PbReader(BaseCog):
         usage="[count]"
     )
     async def read_command(self, ctx, count=None):
-        pb_messages = await self._read_messages(ctx, count)
+        pb_messages = await self.bot.probot.read_embed_messages(ctx, count)
         await ctx.send(f"{len(pb_messages)} ProBot messages found")
 
     @read_command.error
@@ -49,19 +48,9 @@ class PbReader(BaseCog):
             await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
 
 
-    async def _read_messages(self, ctx, count=None): 
-        messages = []       
-        read_channel = await self.bot.probot.get_read_channel(ctx)
-        if read_channel is not None:
-            read_count = self.bot.probot.get_read_count(ctx) if count is None else count
-            probot_member = await self.bot.probot.get_probot_member(ctx)
-            if probot_member is not None:
-                async for msg in read_channel.history(limit=int(read_count)):
-                    if msg.author.id == probot_member.id:
-                        messages.append(msg)
-        return messages
+
 
 
 
 def setup(bot):
-    bot.add_cog(PbReader(bot))      
+    bot.add_cog(ProbotReader(bot))      
