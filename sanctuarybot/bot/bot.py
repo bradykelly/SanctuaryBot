@@ -9,7 +9,7 @@ from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
 from sanctuarybot.utils.ready import Ready
 from sanctuarybot.utils.emoji import EmojiGetter
-from sanctuarybot.utils.probot import ProBotUtils
+from sanctuarybot.utils.probot_utils import ProBotUtils
 
 class Bot(commands.Bot):
 
