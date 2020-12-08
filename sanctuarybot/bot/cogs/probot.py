@@ -53,7 +53,7 @@ class ProbotReader(BaseCog):
     async def clear_command(self, ctx, count: int=None):
         messages = await self.bot.probot.read_message_history(ctx, count)
         await ctx.send(f"Clearing {len(messages)} messages...")
-        count = await self.bot.probot.delete_messages(ctx, messages)
+        count = await self.bot.probot.delete_messages(ctx, count)
         await self.show_message_codeblock(ctx, f"{count} Messages cleared", "clear")
 
     @clear_command.error

@@ -57,22 +57,20 @@ class ProBotUtils():
         read_channel = await self.get_read_channel(ctx)
         # If None is passed for count then get the db configured read_count
         read_count = await self.get_read_count(ctx) if count is None else int(count)
-        # If read_count is 0 then pass None to `history` to read all messages
-        read_count = None if int(read_count) == 0 else read_count
+        # If 0 is passed as count then pass None to `history` to read all messages
+        read_count = None if read_count == 0 else read_count
         messages = await read_channel.history(limit=read_count).flatten()
 
         return sorted(messages, key=lambda msg: msg.created_at)
 
-    async def delete_messages(self, ctx, messages):
-        count = 0
-        for msg in messages:  
-            if not msg.pinned:      
-                await msg.delete()
-                count += 1
-                if count % 10 == 0:
-                    await ctx.send(f"  Cleared {count} messages", delete_after=20)
-        return count        
+    async def delete_messages(self, ctx, count):
+        def is_not_pinned(m):
+            return not m.pinned
 
+        messages = await ctx.channel.purge(limit=count, check=is_not_pinned)
+        return len(messages)        
+
+    #trace
     async def parse_probot_messages(self, ctx, messages):
         """Parses ProBot score embeds in a list of messages"""
 
@@ -88,6 +86,10 @@ class ProBotUtils():
 
             embed = msg.embeds[0]
             if not embed.author.name.endswith("Guild Score Leaderboards"):
+                continue
+
+            # Only the combined chat and voice embed has fields
+            if len(embed.fields) > 0:
                 continue
 
             ranks = self.parse_embed(embed)

@@ -7,8 +7,8 @@ class ProbotRankItem():
         self.parse_rank_line(embed_title, rank_line)
 
     def parse_rank_line(self, title_string, line):
-        title = title_string.replace("*", "").replace(":speech_balloon", "")
-        title = title.replace("SCORE", "").replace(" ", "").replace(":", "")
+        title = title_string.replace("*", "").replace(":speech_balloon:", "")
+        title = title.replace("SCORE", "").replace(" ", "")
         split1 = title.split("[")
         self.type = split1[0]
         self.part = split1[1].replace("]", "")
