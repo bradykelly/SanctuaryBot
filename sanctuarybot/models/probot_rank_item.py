@@ -1,12 +1,13 @@
 import discord
 
-class ProbotRankItem():
+class ProbotLeaderItem():
+    """A line item in one of Probot's CHAT or VOICE leaderboards"""
 
     def __init__(self, timestamp, embed_title, rank_line):
         self.timestamp = timestamp
-        self.parse_rank_line(embed_title, rank_line)
+        self.parse_leader_line(embed_title, rank_line)
 
-    def parse_rank_line(self, title_string, line):
+    def parse_leader_line(self, title_string, line):
         title = title_string.replace("*", "").replace(":speech_balloon:", "")
         title = title.replace("SCORE", "").replace(" ", "")
         split1 = title.split("[")

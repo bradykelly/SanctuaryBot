@@ -1,6 +1,6 @@
 import discord
 from sanctuarybot.exceptions import ConfigError
-from sanctuarybot.models.probot_rank_item import ProbotRankItem
+from sanctuarybot.models.probot_rank_item import ProbotLeaderItem
 
 #TODO Document that admin should assign the nick 'Probot' to Probot to avoid uglies with special chars
 HARD_PROBOT_NAME = 'ProBot ✨'
@@ -72,7 +72,7 @@ class ProBotUtils():
 
     #trace
     async def parse_probot_messages(self, ctx, messages):
-        """Parses ProBot score embeds in a list of messages"""
+        """Parses ProBot leaderboard embeds in a list of messages"""
 
         count = 0
         probot_member = await self.get_probot_member(ctx)
@@ -102,7 +102,7 @@ class ProBotUtils():
         rank_items = []
         member_lines = embed.description.split("\n")            
         for line in member_lines:
-            item = ProbotRankItem(embed.timestamp, embed.title, line)
+            item = ProbotLeaderItem(embed.timestamp, embed.title, line)
             rank_items.append(item)
 
         return rank_items

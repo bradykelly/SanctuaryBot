@@ -24,11 +24,6 @@ class Error(BaseCog):
 
     async def error(self, err, *args, **kwargs):
         ref = await self.log_error(err)
-        hub = self.bot.get_cog("Hub")
-
-        #TODO Add guild name to hub messages
-        if (sc := getattr(hub, "stdout_channel", None)) is not None:
-            await sc.send(f"{self.bot.cross} Something went wrong (ref: {ref}).")
 
         if err == "on_command_error":
             prefix = await self.bot.prefix(args[0].guild)

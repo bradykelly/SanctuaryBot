@@ -43,12 +43,11 @@ class BirthdayUtils():
             await error_cog.command_error(ctx, ex)
             return False    
 
-    async def handle_error(self, ctx, error, required_param=None, error_msg=None):
-        if required_param is not None:
-            if isinstance(error, MissingRequiredArgument) and error.param.name == required_param:
-                await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+    async def handle_error(self, ctx, error, error_msg=None):
+        if isinstance(error, MissingRequiredArgument):
+            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
         else:
-            msg = error.message if isinstance(error, Exception) else f"Type of error:{str(error)}" 
+            msg = error.message if isinstance(error, Exception) else f"Type of error: {str(error)}" 
             if error_msg is not None:               
                 await ctx.send(error_msg + f": {msg}")   
             else:

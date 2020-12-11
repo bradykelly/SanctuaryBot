@@ -7,8 +7,8 @@ from sanctuarybot import utils
 from sanctuarybot.db import db
 from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
-from sanctuarybot.utils.ready import Ready
-from sanctuarybot.utils.emoji import EmojiGetter
+from sanctuarybot.bot.ready import Ready
+from sanctuarybot.utils.emoji import EmojiUtils
 from sanctuarybot.utils.probot_utils import ProBotUtils
 
 class Bot(commands.Bot):
@@ -23,7 +23,7 @@ class Bot(commands.Bot):
         self.probot = ProBotUtils(self)
         self.roles = Roles(self)
         self.embed = utils.EmbedConstructor(self)
-        self.emoji = EmojiGetter(self)
+        self.emoji = EmojiUtils(self)
         self.ready = Ready(self)
 
         super().__init__(command_prefix=self.command_prefix, case_insensitive=True, status=discord.Status.online, intents=intents)
@@ -45,14 +45,13 @@ class Bot(commands.Bot):
         print("Running bot...")
         super().run(Config.TOKEN, reconnect=True)
 
-    async def shutdown(self):
+    async def shutdown(self, channel):
         print("Shutting down...")
         self.scheduler.shutdown()
         print(" Shut down scheduler.")
-        
-        hub = self.get_cog("Hub")
-        if (sc := getattr(hub, "stdout_channel", None)) is not None:
-            await sc.send(f"{self.info} {Config.BOT_NAME} is now shutting down. (Version {self.version})")
+
+        print(" Bot is shutting down.")
+        await channel.send(f" {self.info} {Config.BOT_NAME} is now shutting down. (Version {self.version})")        
 
         print(" Closing connection to Discord...")
         await self.logout()

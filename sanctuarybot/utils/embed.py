@@ -29,11 +29,9 @@ class EmbedConstructor:
             icon_url= kwargs.get("footer_icon_url", ctx.author.avatar_url if ctx else self.bot.user.avatar_url)
         )
 
-        # FIXME: In d.py 1.4, `Embed.Empty` will be supported.
         if thumbnail := kwargs.get("thumbnail"):
             embed.set_thumbnail(url=thumbnail)
 
-        # FIXME: In d.py 1.4, `Embed.Empty` will be supported.
         if image := kwargs.get("image"):
             embed.set_image(url=image)
 

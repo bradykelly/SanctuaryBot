@@ -36,7 +36,3 @@ class Config:
     HARD_DEFAULT_PREFIX: Final = "@!"
     DEFAULT_PREFIX: Final = getenv("DEFAULT_PREFIX", HARD_DEFAULT_PREFIX)    
     BOT_NAME: Final = getenv("BOT_NAME", "SanctuaryBot")
-    HUB_GUILD_ID: Final = int(getenv("HUB_GUILD_ID", ""))
-    HUB_COMMANDS_CHANNEL_ID: Final = int(getenv("HUB_COMMANDS_CHANNEL_ID", ""))
-    HUB_RELAY_CHANNEL_ID: Final = int(getenv("HUB_RELAY_CHANNEL_ID", ""))
-    HUB_STDOUT_CHANNEL_ID: Final = int(getenv("HUB_STDOUT_CHANNEL_ID", ""))

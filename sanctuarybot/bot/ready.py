@@ -12,8 +12,6 @@ class Ready:
 
     def up(self, cog):
         filename = inspect.getmodule(cog).__file__.split("\\")[-1].replace(".py", "")
-        #TODO Remove old code
-        #setattr(self, qn := cog.qualified_name.lower(), True)
         setattr(self, filename, True)
         print(f"{filename} cog ready.")
 

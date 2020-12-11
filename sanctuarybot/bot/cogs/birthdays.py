@@ -63,6 +63,7 @@ class Birthdays(BaseCog):
             return
         try:
             dob = datetime.datetime.strptime(birthdate, "%Y-%m-%d").date()
+        #TODO Catch correct exception type
         except Exception as ex:
             await ctx.send(f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
         else:
@@ -80,8 +81,8 @@ class Birthdays(BaseCog):
     # user command
     #TODO Role/permissions check    
     @birthday_group.command(
-        name="user",
-        aliases=["setuser", "su"],
+        name="setuser",
+        aliases=["su"],
         help="Set a user's birthday in the database for that user to get a birthday greeting",
         brief="Set a user's birthday",
         usage="<user> <YYYY-MM-DD>"    
