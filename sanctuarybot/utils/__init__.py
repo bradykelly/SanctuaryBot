@@ -2,7 +2,8 @@
 from json import load
 from pathlib import Path
 
+DEFAULT_EMBED_COLOUR = 0xE99234
 
 # Dependant on constants above.
 from .embed import EmbedConstructor
-from .emoji import EmojiUtils
+from .emoji import EmojiGetter

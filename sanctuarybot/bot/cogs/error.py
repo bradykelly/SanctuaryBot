@@ -67,14 +67,10 @@ class Error(BaseCog):
             )
 
         elif isinstance(exc, commands.BotMissingPermissions):
-            try:
-                mp = string.list_of([str(perm.replace("_", " ")).title() for perm in exc.missing_perms], sep="or")
-                await ctx.send(
-                    f"{self.bot.cross} {Config.BOT_NAME} does not have the {mp} permission(s), which are required to use this command."
-                )
-            except discord.Forbidden:
-                # If this bot does not have the Send Messages permission (might redirect this to log channel once it's set up).
-                pass
+            mp = string.list_of([str(perm.replace("_", " ")).title() for perm in exc.missing_perms], sep="or")
+            await ctx.send(
+                f"{self.bot.cross} {Config.BOT_NAME} does not have the {mp} permission(s), which are required to use this command."
+            )
 
         elif isinstance(exc, commands.NotOwner):
             await ctx.send(f"{self.bot.cross} That command can only be used by the {common.BOT_NAME} owner.")

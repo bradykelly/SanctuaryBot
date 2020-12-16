@@ -1,9 +1,6 @@
-# From Solaris: https://github.com/parafoxia/Solaris/blob/master/solaris/utils/__init__.py
-
 from discord import utils
 
-
-# If SanctuaryBot can't use the correct emojis, fall back to these.
+# If Solaris can't use the correct emojis, fall back to these.
 ALTERNATIVES = {
     "confirm": "✅",
     "cancel": "❎",
@@ -25,13 +22,23 @@ ALTERNATIVES = {
     "stepnext": "⏩",
 }
 
-class EmojiUtils:
+
+class EmojiGetter:
     def __init__(self, bot):
         self.bot = bot
 
-    def get(self, guild, name):
-        emoji = utils.get(guild.emojis, name=name) or ALTERNATIVES[name]
-        return emoji
+    def get(self, name):
+        hub = self.bot.get_cog("Hub")
 
-    def mention(self, guild, name):
-        return f"{utils.get(guild.emojis, name=name) or ALTERNATIVES[name] or ''}"
+        if getattr(hub, "guild", None) is not None:
+            return utils.get(hub.guild.emojis, name=name) or ALTERNATIVES[name]
+        else:
+            return ALTERNATIVES[name]
+
+    def mention(self, name):
+        hub = self.bot.get_cog("Hub")
+
+        if getattr(hub, "guild", None) is not None:
+            return f"{utils.get(hub.guild.emojis, name=name) or ALTERNATIVES[name] or ''}"
+        else:
+            return ALTERNATIVES[name] or ""

@@ -5,20 +5,18 @@ class Roles:
     def __init__(self, bot):
         self.bot = bot
 
-    #TEST
-    async def user_has_over_18(self, guild: discord.Guild, user: discord.User) -> bool:
-        over18role = await self.bot.db.field("SELECT over_18_role_name \
-            FROM guild_config WHERE guild_id = $1", guild.id)
-        return over18role in user.roles
+    async def get_over_18_roles(self):
+        over18roles = {}
+        roleRows = await self.bot.db.records("SELECT guild_id, over_18_role_names FROM guild_config")
+        for row in roleRows:
+            roleNames = row["over_18_role_names"]
+            over18roles[row["guild_id"]] = roleNames.split(";") if roleNames else []
+        return over18roles
 
-    #TEST
-    async def user_has_botmaster(self, guild: discord.Guild, user: discord.User) -> bool:
-        rolesList = await self.bot.db.field("SELECT botmaster_roles_list \
-            FROM guild_config WHERE guild_id = $1", guild.id)
-        botMasterRoles = rolesList.split(";")
-        hasRole = False
-        for role in botMasterRoles:
-            if role in user.roles:
-                hasRole = True
-                break
-        return hasRole
+    async def get_botmaster_roles(self):
+        botMasterRoles = {}
+        roleRows = await self.bot.db.records("SELECT guild_id, botmaster_role_names FROM guild_config")
+        for row in roleRows:
+            roleNames = row["botmaster_role_names"]
+            botMasterRoles[row["guild_id"]] = roleNames.split(";") if roleNames else []
+        return botMasterRoles

@@ -8,7 +8,7 @@ from sanctuarybot.db import db
 from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
 from sanctuarybot.bot.ready import Ready
-from sanctuarybot.utils.emoji import EmojiUtils
+from sanctuarybot.utils.emoji import EmojiGetter
 from sanctuarybot.utils.probot_utils import ProBotUtils
 
 class Bot(commands.Bot):
@@ -23,10 +23,14 @@ class Bot(commands.Bot):
         self.probot = ProBotUtils(self)
         self.roles = Roles(self)
         self.embed = utils.EmbedConstructor(self)
-        self.emoji = EmojiUtils(self)
+        self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
 
+        #but if you really want you can use bot.loop.run_until_complete(func())
+
         super().__init__(command_prefix=self.command_prefix, case_insensitive=True, status=discord.Status.online, intents=intents)
+
+    #TODO Prevent DM commands
 
     def setup(self):
         print("Running setup...")

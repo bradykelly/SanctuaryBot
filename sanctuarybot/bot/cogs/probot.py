@@ -28,12 +28,12 @@ class ProbotReader(BaseCog):
     async def probot_group(self, ctx):
         if ctx.invoked_subcommand is None or (ctx.invoked_subcommand is not None 
             and ctx.invoked_subcommand.name not in PROBOT_COMMANDS):
-            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
 
     @probot_group.error
     async def on_probot_error(self, ctx, error):
         if isinstance(error, CommandNotFound):
-            await self.show_message_codeblock(ctx, self.format_usage(ctx), "Usage")
+            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
 
     @probot_group.command(
         name="read",

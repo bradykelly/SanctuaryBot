@@ -7,17 +7,12 @@ class BaseCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    def format_usage(self, ctx, prefix=None):
-        '''
-        Contructs a formatted usage string for a command.
-        '''
-        usg = f"{prefix if prefix is not None else ''}{ctx.command.name} {ctx.command.usage}"
+    async def format_usage(self, ctx):
+        prefix = await self.bot.prefix(ctx.guild)
+        usg = f"{ctx.command.name} {ctx.command.usage}"
         return usg
 
     async def show_message_codeblock(self, ctx, message, title=None):
-        '''
-        Shows the user a message in the format of a code block
-        '''
         msg = "```\n"
         if title is not None:
             msg += title + "\n\n"
