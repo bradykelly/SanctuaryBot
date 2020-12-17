@@ -28,12 +28,12 @@ class ProbotReader(BaseCog):
     async def probot_group(self, ctx):
         if ctx.invoked_subcommand is None or (ctx.invoked_subcommand is not None 
             and ctx.invoked_subcommand.name not in PROBOT_COMMANDS):
-            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
+            await self.show_message_embed(ctx, await self.format_usage(ctx), "Usage")
 
     @probot_group.error
     async def on_probot_error(self, ctx, error):
         if isinstance(error, CommandNotFound):
-            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
+            await self.show_message_embed(ctx, await self.format_usage(ctx), "Usage")
 
     @probot_group.command(
         name="read",
@@ -43,7 +43,7 @@ class ProbotReader(BaseCog):
     async def read_command(self, ctx, count: int=None):
         channel_messages = await self.bot.probot.read_message_history(ctx, count)
         count = await self.bot.probot.parse_probot_messages(ctx, channel_messages)
-        await self.show_message_codeblock(ctx, f"{count} ProBot embed messages parsed", "read")
+        await self.show_message_embed(ctx, f"{count} ProBot embed messages parsed", "read")
 
     @probot_group.command(
         name="clear",
@@ -54,12 +54,12 @@ class ProbotReader(BaseCog):
         messages = await self.bot.probot.read_message_history(ctx, count)
         await ctx.send(f"Clearing {len(messages)} messages...")
         count = await self.bot.probot.delete_messages(ctx, count)
-        await self.show_message_codeblock(ctx, f"{count} Messages cleared", "clear")
+        await self.show_message_embed(ctx, f"{count} Messages cleared", "clear")
 
     @clear_command.error
     async def on_clear_error(self, ctx, error):
         if isinstance(error, Forbidden) or isinstance(error, NotFound) or isinstance(error, HTTPException):
-            await self.show_message_codeblock(ctx, 
+            await self.show_message_embed(ctx, 
                 f"Command failed: {error.message if hasattr(error, 'message') else str(error)}", "clear")
 
 

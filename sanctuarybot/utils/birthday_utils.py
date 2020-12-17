@@ -8,19 +8,17 @@ class BirthdayUtils():
 
     messages_job_running = False
 
-    async def show_messages(self, forJob=False):
+    async def show_messages(self, ctx):
         bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth FROM member \
-            WHERE birthday_greeting_time IS NULL AND date_of_birth = $1", datetime.date.today())
+            WHERE guild_id = $1 AND birthday_greeting_time IS NULL AND date_of_birth = $2", ctx.guild.id, datetime.date.today())
         for rec in bdayRecs:
             member = self.bot.get_user(rec["member_id"])
             #TODO Public or private
             await member.send(embed=self.build_birthday_message())
-            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE member_id = $2", datetime.datetime.now(), rec["member_id"])
+            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE guild_id = $2 AND member_id = $3", datetime.datetime.now(), ctx.guild.id, ctx.member.id, rec["member_id"])
         await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
 
     async def messages_job(self):
-        if BirthdayUtils.messages_job_running:
-            return
         BirthdayUtils.messages_job_running = True
         try:
             await self.show_messages(forJob=True)
@@ -32,9 +30,9 @@ class BirthdayUtils():
             BirthdayUtils.messages_job_running = False
 
     async def set_birthdate(self, ctx, user_id, dob):    
-        await self.bot.db.execute("INSERT INTO member (member_id, date_of_birth) VALUES($1, $2) \
-            ON CONFLICT (member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeting_time = NULL", 
-            user_id, dob)
+        await self.bot.db.execute("INSERT INTO member (guild_id, member_id, date_of_birth) VALUES($1, $2, $3) \
+            ON CONFLICT (guild_id, member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeting_time = NULL", 
+            ctx.guild.id, user_id, dob)
 
     def build_birthday_message(self):
         self.bot.embed.build(

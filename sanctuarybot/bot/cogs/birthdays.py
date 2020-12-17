@@ -40,20 +40,20 @@ class Birthdays(BaseCog):
     async def birthday_group(self, ctx):            
         if ctx.invoked_subcommand is None:
             if ctx.subcommand_passed is not None and not ctx.subcommand_passed in BIRTHDAY_COMMANDS:
-                await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
+                await self.show_message_embed(ctx, await self.format_usage(ctx), "Usage")
                 return
             await self._check_over_18(ctx)
             prefix = await self.bot.prefix(ctx.guild)
-            dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE member_id = $1", ctx.author.id)            
+            dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE guild_id = $1 AND member_id = $2", ctx.guild.id, ctx.author.id)            
             if dob is None:                
-                await self.show_message_codeblock(ctx, f"Your birthday is not set in our database. Use `{prefix}birthday set YYYY-MM-DD` to set it.")
+                await self.show_message_embed(ctx, f"Your birthday is not set in our database. Use `{prefix}birthday set YYYY-MM-DD` to set it.")
             else:
-                await self.show_message_codeblock(ctx, f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday clear` to clear the stored info.")
+                await self.show_message_embed(ctx, f"Your birthday is set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}birthday clear` to clear the stored info.")
 
     @birthday_group.error
     async def birthday_handler(self, ctx, error):
         if isinstance(error, CommandNotFound) or isinstance(error, MissingRequiredArgument):
-            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
+            await self.show_message_embed(ctx, await self.format_usage(ctx), "Usage")
 
 
     # set command
@@ -65,46 +65,37 @@ class Birthdays(BaseCog):
         usage="<YYYY-MM-DD>"    
     )
     async def set_command(self, ctx, birthdate):
-        self._check_over_18(ctx)
+        if not self._check_over_18(ctx):
+            return
         prefix = await self.bot.prefix(ctx.guild)
         try:
             dob = datetime.datetime.strptime(birthdate, "%Y-%m-%d").date()
         except ValueError as ex:
-            await self.show_message_codeblock(ctx, f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
+            await self.show_message_embed(ctx, f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
         else:
             await self.utils.set_birthdate(ctx, ctx.author.id, dob)
-            await self.show_message_codeblock(ctx, f"Your birthday has been set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}help {ctx.command}` for more information. " +
+            await self.show_message_embed(ctx, f"Your birthday has been set to `{dob.strftime('%Y-%m-%d')}`. Use `{prefix}help {ctx.command}` for more information. " +
                 f"Although we store this data about you, you can clear it at any time with the `{prefix}birthday clear` command.")
-
-    @set_command.error
-    async def set_handler(self, ctx, error):
-        if isinstance(error, MissingRequiredArgument):
-            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
 
 
     # setuser command 
     @birthday_group.command(
         name="setuser",
         aliases=["su", "user"],
-        help="Set a user's birthday in the database for that user to get a birthday greeting on that date",
+        help="Set a user's birthday in the database for that user to get a birthday greeting on their birthday",
         brief="Set a user's birthday greeting date",
         usage="<user> <YYYY-MM-DD>"    
     )
-    #TODO Check if coersion to User works
     async def setuser_command(self, ctx, user: discord.User, birthdate):
-        self._check_over_18(ctx)
+        if not await self._check_botmaster(ctx):
+            return
         try:
             dob = datetime.datetime.strptime(birthdate, "%Y-%m-%d").date()
         except ValueError as ex:
             await ctx.send(f"Birthday value `{birthdate}` is not in a valid format. Please use format `YYYY-MM-DD`.")
         else:
             await self.utils.set_birthdate(ctx, user.id, dob)
-            await self.show_message_codeblock(ctx, f"The user's birthday has been set to `{dob.strftime('%Y-%m-%d')}`")
-
-    @setuser_command.error
-    async def user_handler(self, ctx, error):
-        if isinstance(error, MissingRequiredArgument):
-            await self.show_message_codeblock(ctx, await self.format_usage(ctx), "Usage")
+            await self.show_message_embed(ctx, f"The birthday for {user.mention} has been set to `{dob.strftime('%Y-%m-%d')}`")
 
 
     # clear command
@@ -116,32 +107,23 @@ class Birthdays(BaseCog):
     )
     async def clear_command(self, ctx):
         await self.bot.db.execute("UPDATE member SET date_of_birth = NULL, \
-            birthday_greeting_time = NULL WHERE member_id = $1", ctx.author.id)
-        await self.show_message_codeblock(ctx, f"Your birthday has been cleared.")            
+            birthday_greeting_time = NULL WHERE guild_id = $1 AND member_id = $2", ctx.guild.id, ctx.author.id)
+        await self.show_message_embed(ctx, f"Your birthday has been cleared.")            
 
 
     #public command
     @birthday_group.command(
-        name="public", 
-        help="Set whether you get a public or private birthday greeting",
-        brief="Set public or private greeting",
-        usage="[yes|no]"
+        name="public",     
+        help="Make your birthday greeting public",
+        brief="Make your birthday greeting public"
     )
-    async def public_command(self, ctx, yesNo):
+    async def public_command(self, ctx):
         if not await self.check_over_18(ctx):
             await ctx.send("You must be verified over 18 years to use this command.")
-            return
-        prefix = await self.bot.prefix(ctx.guild)
-        if yesNo.lower() != "yes" and yesNo.lower() != "no":
-            await self.show_message_codeblock(ctx, f"{prefix}birthday public [yes|no]", "Usage")
-            return
-        trueFalse = "TRUE" if yesNo.lower() == "yes" else "FALSE"             
-        await self.bot.db.execute(f"UPDATE member SET birthday_greeting_public = {trueFalse} WHERE member_id = $1", ctx.author.id)
-        await ctx.send(f"Your birthday greeting has been set to {'public' if yesNo.lower() == 'yes' else 'private'}")        
+            return  
+        await self.bot.db.execute(f"UPDATE member SET birthday_greeting_public = TRUE WHERE guild_id = $1 AND member_id = $2", ctx.guild.id, ctx.author.id)
+        await ctx.send(f"Your birthday greeting has been set to be public.")        
 
-    @public_command.error
-    async def public_handler(self, ctx, error):
-        await self.handle_error(ctx, error, "yesNo")
 
 
     # show_messages command
@@ -150,7 +132,10 @@ class Birthdays(BaseCog):
         hidden=True
     )
     async def show_messages_command(self, ctx):     
-        await self._check_botmaster(ctx)   
+        await self._check_botmaster(ctx)  
+        if BirthdayUtils.messages_job_running:
+            self.show_message_embed(ctx, "The show_messages job is already running", "show_messages")
+            return 
         await self.utils.show_messages()
 
 
@@ -164,7 +149,10 @@ class Birthdays(BaseCog):
                 hasRole = True
                 break
         if not hasRole:
-            self.show_message_codeblock(ctx, "You must be verified over 18 years old to use this command.")
+            self.show_message_embed(ctx, "You must be verified over 18 years old to use this command.")
+            return False
+        else:
+            return True
 
     async def _check_botmaster(self, ctx):
         if self.botMasterRoles is None:
@@ -176,7 +164,10 @@ class Birthdays(BaseCog):
                 hasRole = True
                 break
         if not hasRole:
-            self.show_message_codeblock(ctx, "You must have one of the BotMaster roles to use this command.")
+            self.show_message_embed(ctx, "You must have one of the BotMaster roles to use this command.")
+            return False
+        else:
+            return True
 
 
 
