@@ -10,13 +10,13 @@ class BirthdayUtils():
 
     async def show_messages(self, ctx):
         bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth FROM member \
-            WHERE guild_id = $1 AND birthday_greeting_time IS NULL AND date_of_birth = $2", ctx.guild.id, datetime.date.today())
+            WHERE guild_id = $1 AND birthday_greeted_at IS NULL AND date_of_birth = $2", ctx.guild.id, datetime.date.today())
         for rec in bdayRecs:
             member = self.bot.get_user(rec["member_id"])
             #TODO Public or private
             await member.send(embed=self.build_birthday_message())
-            await self.bot.db.execute("UPDATE member SET birthday_greeting_time = $1 WHERE guild_id = $2 AND member_id = $3", datetime.datetime.now(), ctx.guild.id, ctx.member.id, rec["member_id"])
-        await self.bot.db.execute("UPDATE member SET birthday_greeting_time = null WHERE date(birthday_greeting_time) < $1", datetime.date.today())         
+            await self.bot.db.execute("UPDATE member SET birthday_greeted_at = $1 WHERE guild_id = $2 AND member_id = $3", datetime.datetime.now(), ctx.guild.id, ctx.member.id, rec["member_id"])
+        await self.bot.db.execute("UPDATE member SET birthday_greeted_at = null WHERE date(birthday_greeted_at) < $1", datetime.date.today())         
 
     async def messages_job(self):
         BirthdayUtils.messages_job_running = True
@@ -31,7 +31,7 @@ class BirthdayUtils():
 
     async def set_birthdate(self, ctx, user_id, dob):    
         await self.bot.db.execute("INSERT INTO member (guild_id, member_id, date_of_birth) VALUES($1, $2, $3) \
-            ON CONFLICT (guild_id, member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeting_time = NULL", 
+            ON CONFLICT (guild_id, member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeted_at = NULL", 
             ctx.guild.id, user_id, dob)
 
     def build_birthday_message(self):
