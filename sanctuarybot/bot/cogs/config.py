@@ -26,7 +26,7 @@ class Config(BaseCog):
             if len(newPrefix) == 0 or len(newPrefix) > config.MAX_PREFIX_LEN:
                 await ctx.send(f"The command prefix must be \between 1 and {config.MAX_PREFIX_LEN} characters long")
                 return   
-            await self.bot.db.execute("UPDATE guild_config \
+            await self.bot.db.execute("UPDATE guild \
                 SET command_prefix = $2 WHERE guild_id = $1", ctx.guild.id, newPrefix) 
             await ctx.send(f"The {config.Config.BOT_NAME} prefix in this server is now `{newPrefix}`.")
          

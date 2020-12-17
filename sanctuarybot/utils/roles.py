@@ -13,7 +13,7 @@ class Roles:
 
     async def get_over_18_roles(self):
         over18roles = {}
-        roleRows = await self.bot.db.records("SELECT guild_id, over_18_role_names FROM guild_config")
+        roleRows = await self.bot.db.records("SELECT guild_id, over_18_role_names FROM guild")
         for row in roleRows:
             roleNames = row["over_18_role_names"].split(";") if row["over_18_role_names"] is not None else []
             guild = self.bot.get_guild(row["guild_id"])
@@ -22,7 +22,7 @@ class Roles:
 
     async def get_botmaster_roles(self):
         botMasterRoles = {}
-        roleRows = await self.bot.db.records("SELECT guild_id, botmaster_role_names FROM guild_config")
+        roleRows = await self.bot.db.records("SELECT guild_id, botmaster_role_names FROM guild")
         for row in roleRows:
             roleNames = row["botmaster_role_names"].split(";") if row["botmaster_role_names"] is not None else []
             guild = self.bot.get_guild(row["guild_id"])

@@ -94,7 +94,7 @@ class Bot(commands.Bot):
 
     async def prefix(self, guild):
         if guild is not None:
-            prefix = await self.db.field("SELECT command_prefix FROM guild_config WHERE guild_id = $1", guild.id)
+            prefix = await self.db.field("SELECT command_prefix FROM guild WHERE guild_id = $1", guild.id)
             if not prefix:
                 return Config.DEFAULT_PREFIX
             return prefix.strip()

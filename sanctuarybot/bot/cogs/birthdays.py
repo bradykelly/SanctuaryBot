@@ -10,7 +10,7 @@ from sanctuarybot.bot.basecog import BaseCog
 from apscheduler.triggers.cron import CronTrigger
 from sanctuarybot.utils.birthday_utils import BirthdayUtils
 
-BIRTHDAY_COMMANDS = ["set", "clear", "public", "user", "show_messages"]
+BIRTHDAY_COMMANDS = ["set", "clear", "public", "private", "setuser", "show_messages"]
 
 class Birthdays(BaseCog):
     """Commands to set up sending a birthday card message on a user's birthday"""
@@ -35,7 +35,7 @@ class Birthdays(BaseCog):
         title="Commands to set up a greeting for your birthday", 
         help="Add, update or remove your birthday",
         brief="Birthday greeting commands",
-        usage="set <YYYY-MM-DD> | clear | public <yes|no>"
+        usage="set <YYYY-MM-DD> | clear | public | private"
     )
     async def birthday_group(self, ctx):            
         if ctx.invoked_subcommand is None:
@@ -126,17 +126,29 @@ class Birthdays(BaseCog):
         await self.show_message_embed(ctx, f"Your birthday greeting has been set to be public.")        
 
 
+    #private command
+    @birthday_group.command(
+        name="private",     
+        help="Make your birthday greeting private",
+        brief="Make your birthday greeting private"
+    )
+    async def private_command(self, ctx):
+        if not await self._check_over_18(ctx):
+            await self.show_message_embed(ctx, "You must be verified over 18 years to use this command.")
+            return  
+        await self.bot.db.execute(f"UPDATE member SET birthday_greeting_public = FALSE WHERE guild_id = $1 AND member_id = $2", ctx.guild.id, ctx.author.id)
+        await self.show_message_embed(ctx, f"Your birthday greeting has been set to be private.")        
+
+
     # show_messages command
     @birthday_group.command(
-        name="show_messages"  ,
+        name="show_messages",
         hidden=True
     )
     async def show_messages_command(self, ctx):     
-        await self._check_botmaster(ctx)  
-        if BirthdayUtils.messages_job_running:
-            await self.show_message_embed(ctx, "The show_messages job is busy running", "show_messages")
-            return 
-        await self.utils.show_messages()
+        if not await self._check_botmaster(ctx):
+            return
+        await self.utils.show_messages(ctx, ctx.guild.id)
 
 
     async def _check_over_18(self, ctx):
