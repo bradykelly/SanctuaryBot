@@ -1,7 +1,6 @@
 import discord
 from datetime import datetime
 from datetime import date
-from discord.ext.commands.errors import MissingRequiredArgument
 
 class BirthdayUtils():
 
@@ -12,26 +11,29 @@ class BirthdayUtils():
 
     async def show_messages(self, ctx=None, guild_id=None, forJob=False):
         if BirthdayUtils.show_messages_running:
-            await self.show_message_embed(ctx, "The show_messages job is busy running", "show_messages")
+            await self.bot.output.show_message_embed(ctx, "The show_messages job is busy running", "show_messages")
             return 
         BirthdayUtils.show_messages_running = True
         try:
+            # Get all birthday members that haven't yet been greeted today.
             bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth, birthday_greeting_public FROM member \
                 WHERE guild_id = $1 AND birthday_greeted_at IS NULL AND date_of_birth = $2", guild_id, date.today())
+
             for rec in bdayRecs:
-                member = self.bot.get_user(rec["member_id"])
+                user = self.bot.get_user(rec["member_id"])
                 if not forJob and rec["birthday_greeting_public"] == True:
                     channel = await self.get_birthday_channel(ctx)
-                    await channel.send(embed=self.build_birthday_message())
+                    await channel.send(embed=self.build_birthday_message(user))
                 else:
-                    await member.send(embed=self.build_birthday_message())
+                    await user.send(embed=self.build_birthday_message(user))
+                
+                # Set the greeted date to prevent another greeting today.
                 await self.bot.db.execute("UPDATE member SET birthday_greeted_at = $1 WHERE guild_id = $2 AND member_id = $3", datetime.now(), ctx.guild.id, rec["member_id"])
-            try:
-                await self.bot.db.execute("UPDATE member SET birthday_greeted_at = NULL WHERE date(birthday_greeted_at) < $1", date.today())        
-            except Exception as e:
-                pass
+
+            # Clear all greeted dates before today. We will not greet them for another year.
+            await self.bot.db.execute("UPDATE member SET birthday_greeted_at = NULL WHERE date(birthday_greeted_at) < $1", date.today())        
         finally:
-            BirthdayUtils.show_messages_running = True
+            BirthdayUtils.show_messages_running = False
 
     async def messages_job(self):
         if BirthdayUtils.show_messages_running:
@@ -47,6 +49,10 @@ class BirthdayUtils():
         finally:
             BirthdayUtils.show_messages_running = False
 
+    async def get_birthdate(self, ctx):
+        dob = await self.bot.db.field("SELECT date_of_birth FROM member WHERE guild_id = $1 AND member_id = $2", ctx.guild.id, ctx.author.id)            
+        return dob
+
     async def set_birthdate(self, ctx, user_id, dob):    
         await self.bot.db.execute("INSERT INTO member (guild_id, member_id, date_of_birth) VALUES($1, $2, $3) \
             ON CONFLICT (guild_id, member_id) DO UPDATE SET date_of_birth = EXCLUDED.date_of_birth, birthday_greeted_at = NULL", 
@@ -57,10 +63,10 @@ class BirthdayUtils():
         channel = discord.utils.get(ctx.guild.channels, name=channelName)
         return channel
 
-    def build_birthday_message(self):
+    def build_birthday_message(self, user):
         embed = self.bot.embed.build(
-            title="Happy Birthday!", 
-            description="The Sanctuary community wishes you a very happy birthday",
+            title=f"Happy Birthday!", 
+            description=f"{user.mention}, the Sanctuary community wishes you a very happy birthday",
             url="http://sancturaybot.co.za/help?command=birthday",
             author_url="http://sancturaybot.co.za"
             #image="file://D:/Personal/Python+Projects/SanctuaryBot/images/bday1.jpg"

@@ -27,7 +27,7 @@ class Error(BaseCog):
 
         if err == "on_command_error":
             prefix = await self.bot.prefix(args[0].guild)
-            await self.show_message_embed(args[0],
+            await self.bot.output.show_message_embed(args[0],
                 f"{self.bot.cross} Something went wrong (ref: {ref}). Quote this reference in the support server, which you can get a link for by using `{prefix}support`."
             )
         if isinstance(err, Exception):
@@ -37,36 +37,36 @@ class Error(BaseCog):
         prefix = await self.bot.prefix(ctx.guild)
 
         if isinstance(exc, commands.CommandNotFound):
-            await self.show_message_embed(ctx, f"{self.bot.cross} Command `{exc.param.name}`is not known to {Config.BOT_NAME}")
+            await self.bot.output.show_message_embed(ctx, f"{self.bot.cross} Command `{exc.param.name}`is not known to {Config.BOT_NAME}")
 
         # Custom check failure handling.
         elif hasattr(exc, "msg"):
-            await self.show_message_embed(ctx, f"{self.bot.cross} {exc.msg}")
+            await self.bot.output.show_message_embed(ctx, f"{self.bot.cross} {exc.msg}")
 
         elif isinstance(exc, commands.MissingRequiredArgument):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} No `{exc.param.name}` argument was passed, despite being required. Use `{prefix}help {ctx.command}` for more information."
             )
 
         elif isinstance(exc, commands.BadArgument):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} One or more arguments are invalid. Use `{prefix}help {ctx.command}` for more information."
             )
 
         elif isinstance(exc, commands.TooManyArguments):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} Too many arguments have been passed. Use `{prefix}help {ctx.command}` for more information.",
             )
 
         elif isinstance(exc, commands.MissingPermissions):
             mp = string.list_of([str(perm.replace("_", " ")).title() for perm in exc.missing_perms], sep="or")
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} You do not have the {mp} permission(s), which are required to use this command."
             )
 
         elif isinstance(exc, commands.BotMissingPermissions):
             mp = string.list_of([str(perm.replace("_", " ")).title() for perm in exc.missing_perms], sep="or")
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} {Config.BOT_NAME} does not have the {mp} permission(s), which are required to use this command."
             )
 
@@ -82,40 +82,40 @@ class Error(BaseCog):
                 "BucketType.member": "{} You can not use that command in this server for another {}.",
                 "BucketType.category": "{} That command can not be used in this category for another {}.",
             }
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 cooldown_texts[str(exc.cooldown.type)].format(
                     self.bot.cross, chron.long_delta(dt.timedelta(seconds=exc.retry_after))
                 )
             )
 
         elif isinstance(exc, commands.InvalidEndOfQuotedStringError):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} {Config.BOT_NAME} expected a space after the closing quote, but found a(n) `{exc.char}` instead."
             )
 
         elif isinstance(exc, commands.ExpectedClosingQuoteError):
-            await self.show_message_embed(ctx, f"{self.bot.cross} {Config.BOT_NAME} expected a closing quote character, but did not find one.")
+            await self.bot.output.show_message_embed(ctx, f"{self.bot.cross} {Config.BOT_NAME} expected a closing quote character, but did not find one.")
 
         # Base errors.
         elif isinstance(exc, commands.UserInputError):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} There was an unhandled user input problem (probably argument passing error). Use `{prefix}help {ctx.command}` for more information."
             )
 
         elif isinstance(exc, commands.CheckFailure):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} There was an unhandled command check error (probably missing privileges). Use `{prefix}help {ctx.command}` for more information."
             )
 
         elif isinstance(exc, asyncpg.exceptions.PostgresError):
-            await self.show_message_embed(ctx, 
+            await self.bot.output.show_message_embed(ctx, 
                 f"{self.bot.cross} There was an unhandled database error while executing command `{prefix}{ctx.command}`. The error is: {exc.message}"
             )
 
         # Non-command errors.
         elif (original := getattr(exc, "original", None)) is not None:
             if isinstance(original, discord.HTTPException):
-                await self.show_message_embed(ctx, 
+                await self.bot.output.show_message_embed(ctx, 
                     f"{self.bot.cross} An HTTP exception occurred ({original.status})\n```{original.text}```"
                 )
             else:

@@ -1,3 +1,4 @@
+from sanctuarybot.utils.output import OutputUtils
 import time
 import discord
 from pathlib import Path
@@ -22,6 +23,7 @@ class Bot(commands.Bot):
         self.db = db.Database(self, Config.DSN)
         self.probot = ProBotUtils(self)
         self.roles = Roles(self)
+        self.output = OutputUtils(self)
         self.embed = utils.EmbedConstructor(self)
         self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
