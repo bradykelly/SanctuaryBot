@@ -1,8 +1,5 @@
 import asyncio
 import asyncpg
-from os import path
-from aiosqlite import connect
-from apscheduler.triggers.cron import CronTrigger
 
 
 class Database:

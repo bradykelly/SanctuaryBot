@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from sanctuarybot.utils.output import OutputUtils
 
 
 class BaseCog(commands.Cog):
@@ -7,4 +8,5 @@ class BaseCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.output = OutputUtils()
 

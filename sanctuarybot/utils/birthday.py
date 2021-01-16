@@ -19,10 +19,10 @@ class BirthdayUtils():
             bdayRecs = await self.bot.db.records("SELECT member_id, date_of_birth, birthday_greeting_public FROM member \
                 WHERE guild_id = $1 AND birthday_greeted_at IS NULL AND date_of_birth = $2", guild_id, date.today())
 
+            channel = await self.get_birthday_channel(ctx)
             for rec in bdayRecs:
                 user = self.bot.get_user(rec["member_id"])
-                if not forJob and rec["birthday_greeting_public"] == True:
-                    channel = await self.get_birthday_channel(ctx)
+                if not forJob and rec["birthday_greeting_public"] == True:                    
                     await channel.send(embed=self.build_birthday_message(user))
                 else:
                     await user.send(embed=self.build_birthday_message(user))

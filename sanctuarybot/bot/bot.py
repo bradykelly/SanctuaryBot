@@ -1,3 +1,6 @@
+from sanctuarybot.utils.view import StringViewSpaces
+from discord.ext.commands.context import Context
+from discord.ext.commands.view import StringView
 from sanctuarybot.utils.output import OutputUtils
 import time
 import discord
@@ -10,7 +13,7 @@ from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
 from sanctuarybot.bot.ready import Ready
 from sanctuarybot.utils.emoji import EmojiGetter
-from sanctuarybot.utils.probot_utils import ProBotUtils
+from sanctuarybot.utils.probot import ProBotUtils
 
 class Bot(commands.Bot):
 
@@ -104,6 +107,48 @@ class Bot(commands.Bot):
     async def command_prefix(self, bot, msg):
         prefix = await self.prefix(msg.guild)
         return commands.when_mentioned_or(prefix or Config.DEFAULT_PREFIX)(bot, msg) 
+
+    async def get_context(self, message, *, cls=Context):
+        view = StringViewSpaces(message.content)
+        ctx = cls(prefix=None, view=view, bot=self, message=message)
+
+        if self._skip_check(message.author.id, self.user.id):
+            return ctx
+
+        prefix = await self.get_prefix(message)
+        invoked_prefix = prefix
+
+        if isinstance(prefix, str):
+            if not view.skip_string(prefix):
+                return ctx
+        else:
+            try:
+                # if the context class' __init__ consumes something from the view this
+                # will be wrong.  That seems unreasonable though.
+                if message.content.startswith(tuple(prefix)):
+                    invoked_prefix = discord.utils.find(view.skip_string, prefix)
+                else:
+                    return ctx
+
+            except TypeError:
+                if not isinstance(prefix, list):
+                    raise TypeError("get_prefix must return either a string or a list of string, "
+                                    "not {}".format(prefix.__class__.__name__))
+
+                # It's possible a bad command_prefix got us here.
+                for value in prefix:
+                    if not isinstance(value, str):
+                        raise TypeError("Iterable command_prefix or list returned from get_prefix must "
+                                        "contain only strings, not {}".format(value.__class__.__name__))
+
+                # Getting here shouldn't happen
+                raise
+
+        invoker = view.get_word().strip()
+        ctx.invoked_with = invoker
+        ctx.prefix = invoked_prefix
+        ctx.command = self.all_commands.get(invoker)
+        return ctx
 
     async def process_commands(self, msg):
         ctx = await self.get_context(msg, cls=commands.Context)

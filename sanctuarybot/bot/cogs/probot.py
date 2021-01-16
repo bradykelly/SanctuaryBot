@@ -5,15 +5,17 @@ from discord.errors import Forbidden, HTTPException, NotFound
 from discord.ext import commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from sanctuarybot.bot.basecog import BaseCog
+from sanctuarybot.utils.probot import ProBotUtils
 
 
 PROBOT_COMMANDS = ["read", "clear"]
 
-class ProbotReader(BaseCog):
-    """Commands to parse xp output from the ProBot `top` commands"""
+class Probot(BaseCog):
+    """Commands to parse output from the ProBot leaderboards"""
 
     def __init__(self, bot):
         self.bot = bot
+        self.probot = ProBotUtils()
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -24,16 +26,17 @@ class ProbotReader(BaseCog):
         name="probot",
         aliases=["pb", "pbot"],
         brief="Commands to work with Probot",
-        usage="[read [read_count]] | [clear[clear_count]]")
+        usage="read [read_count] | clear [clear_count]")
     async def probot_group(self, ctx):
-        if ctx.invoked_subcommand is None or (ctx.invoked_subcommand is not None 
-            and ctx.invoked_subcommand.name not in PROBOT_COMMANDS):
-            await self.bot.output.show_message_embed(ctx, await self.bot.output.format_usage(ctx), "Usage")
+        
+        # This condition doesn't automatically raise CommandNotFound, thus doesn't trigger @probot_group.error
+        if ctx.subcommand_passed is not None and not ctx.subcommand_passed in PROBOT_COMMANDS:
+            await self.output.show_message_embed(ctx, await self.output.format_usage(ctx), "Usage")
 
     @probot_group.error
     async def on_probot_error(self, ctx, error):
         if isinstance(error, CommandNotFound):
-            await self.bot.output.show_message_embed(ctx, await self.bot.output.format_usage(ctx), "Usage")
+            await self.output.show_message_embed(ctx, await self.output.format_usage(ctx), "Usage")
 
     @probot_group.command(
         name="read",
@@ -41,27 +44,33 @@ class ProbotReader(BaseCog):
         usage="[count]"
     )
     async def read_command(self, ctx, count: int=None):
-        channel_messages = await self.bot.probot.read_message_history(ctx, count)
-        count = await self.bot.probot.parse_probot_messages(ctx, channel_messages)
-        await self.bot.output.show_message_embed(ctx, f"{count} ProBot embed messages parsed", "read")
+        channel_messages = await self.probot.read_message_history(ctx, count)
+        count = await self.probot.import_probot_messages(ctx, channel_messages)
+        await self.output.show_message_embed(ctx, f"{count} ProBot leaderboard messages parsed", "read")
+
+    @read_command.error
+    async def on_clear_error(self, ctx, error):
+        await self.output.show_message_embed(ctx, 
+            f"Command failed: {error.message if hasattr(error, 'message') else str(error)}", "clear")
 
     @probot_group.command(
         name="clear",
         aliases=["delete", "del", "cl"],
         usage="[count]"
     )
-    async def clear_command(self, ctx, count: int=None):
-        messages = await self.bot.probot.read_message_history(ctx, count)
+    async def clear_command(self, ctx, count=None):        
+        #TODO Get channel message count
+        messages = await self.probot.read_message_history(ctx, count)
         await ctx.send(f"Clearing {len(messages)} messages...")
-        count = await self.bot.probot.delete_messages(ctx, count)
-        await self.bot.output.show_message_embed(ctx, f"{count} Messages cleared", "clear")
+        count = await self.probot.delete_messages(ctx, count)
+        await self.output.show_message_embed(ctx, f"{count} Messages cleared", "clear")
 
     @clear_command.error
     async def on_clear_error(self, ctx, error):
         if isinstance(error, Forbidden) or isinstance(error, NotFound) or isinstance(error, HTTPException):
-            await self.bot.output.show_message_embed(ctx, 
+            await self.output.show_message_embed(ctx, 
                 f"Command failed: {error.message if hasattr(error, 'message') else str(error)}", "clear")
 
 
 def setup(bot):
-    bot.add_cog(ProbotReader(bot))      
+    bot.add_cog(Probot(bot))      
