@@ -1,4 +1,4 @@
-import discord
+from sanctuarybot.models.probot_leaderboard import ProbotLeaderboard
 from sanctuarybot.exceptions import ConfigError
 from sanctuarybot.models.probot_rank_item import ProbotRankItem
 from sanctuarybot.utils.baseutil import BaseUtil
@@ -59,46 +59,47 @@ class ProBotUtils(BaseUtil):
         messages = await ctx.channel.purge(limit=clear_count, check=is_not_pinned)
         return len(messages)        
 
-    async def import_probot_messages(self, ctx, messages):
-        """Parses and imports ProBot leaderboard embeds from a list of messages"""
+    async def import_probot_leaderboards(self, ctx, messages):
 
-        count = 0
+        leaderboards = []
         probot_member = await self.get_probot_member(ctx)
         if probot_member is None:
             raise ConfigError("Could not get the Probot user object")
-
+        
         for msg in messages:
             # leaderboard messages should have exactly one embed
             if msg.author.id != probot_member.id or len(msg.embeds) != 1:
                 continue
-
             embed = msg.embeds[0]
+            
             if not embed.author.name.endswith("Guild Score Leaderboards"):
                 continue
 
-            # Only the combined chat and voice embed has fields. We want chat or voice separately.
+            # The combined chat and voice embed has fields. 
+            # We want chat or voice separately, these have no fields.
             if len(embed.fields) > 0:
                 continue
 
-            rank_items = self.parse_embed(embed)
+            leaderboards.append(ProbotLeaderboard(embed))
 
-            count += 1
+        await self.write_leaderboards(leaderboards)
+        return len(leaderboards)
 
-        return count
-
-    def parse_embed(self, embed):
-        rank_items = []
-        member_lines = embed.description.split("\n")            
-        for line in member_lines:
-            item = ProbotRankItem(embed.timestamp, embed.title, line)
-            rank_items.append(item)
-
-        return rank_items
-
-    def write_rank_items(self, guildId, new_rank_items):
-        for new_item in  new_rank_items:
-            self.bot.db.execute("INSERT probot_import (guild_id, time, type, part, member_id, rank, points) VALUES ($1, $2, $3, $4, $5, $6, $7", 
-                guildId, new_item.timestamp, new_item.type, new_item.part, new_item.member_id, new_item.rank, new_item.points)
+    async def write_leaderboards(self, guildId, leaderboards):
+        for board in leaderboards:
+            for item in board.items:
+                member_row = await self.bot.db.record("SELECT chat_points, voice_points FROM probot_points WHERE guild_id = $1 \
+                    AND member_id = $2", board.guild_id, item.member_id)
+                if member_row is None:
+                    await self.bot.db.execute("INSERT INTO probot_points (guild_id, member_id, chat_points, voice_points) VALUES( \
+                        $1, $2, $3, $4)", board.guild_id, item.member_id, item.chat_points, item.voice_points)
+                else:
+                    if board.type.lower() == "chat" and item.chat_points > member_row["chat_points"]:
+                        await self.bot.db.execute("UPDATE probot_points SET chat_points = $1 \
+                            WHERE guild_id = $2 and member_id = $3", item.chat_points, board.guild_id, item.member_id)
+                    elif board.type.lower() == "voice" and item.voice_points > member_row["voice_points"]:
+                        await self.bot.db.execute("UPDATE probot_points SET voice_points = $1 \
+                            WHERE guild_id = $2 and member_id = $3", item.voice_points, board.guild_id, item.member_id)
             
 
         

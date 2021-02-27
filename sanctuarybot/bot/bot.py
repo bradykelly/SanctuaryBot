@@ -1,19 +1,16 @@
-from sanctuarybot.utils.view import StringViewSpaces
-from discord.ext.commands.context import Context
-from discord.ext.commands.view import StringView
-from sanctuarybot.utils.output import OutputUtils
 import time
 import discord
 from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from discord.ext import commands
-from sanctuarybot import utils
 from sanctuarybot.db import db
 from sanctuarybot.config import Config
 from sanctuarybot.utils.roles import Roles
 from sanctuarybot.bot.ready import Ready
 from sanctuarybot.utils.emoji import EmojiGetter
-from sanctuarybot.utils.probot import ProBotUtils
+from sanctuarybot.utils.view import StringViewSpaces
+from discord.ext.commands.context import Context
+from sanctuarybot.utils.output import OutputUtils
 
 class Bot(commands.Bot):
 
@@ -24,10 +21,8 @@ class Bot(commands.Bot):
         self._static = "./sanctuarybot/data/static"
         self.scheduler = AsyncIOScheduler()
         self.db = db.Database(self, Config.DSN)
-        self.probot = ProBotUtils(self)
         self.roles = Roles(self)
         self.output = OutputUtils(self)
-        self.embed = utils.EmbedConstructor(self)
         self.emoji = EmojiGetter(self)
         self.ready = Ready(self)
 
